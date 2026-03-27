@@ -109,10 +109,39 @@ def test_company_update_json(runner):
 
 @rsps.activate
 def test_company_delete_yes(runner):
-    rsps.add(rsps.DELETE, "http://localhost:3100/api/companies/1", status=204)
+    # delete now archives by default (POST /archive)
+    rsps.add(rsps.POST, "http://localhost:3100/api/companies/1/archive",
+             json={"id": "1", "status": "archived"})
     result = runner.invoke(cli, ["--url", "http://localhost:3100", "company", "delete", "1", "--yes"])
     assert result.exit_code == 0
+    assert "Archived" in result.output
+
+
+@rsps.activate
+def test_company_delete_force(runner):
+    # --force does a hard DELETE
+    rsps.add(rsps.DELETE, "http://localhost:3100/api/companies/1", status=204)
+    result = runner.invoke(cli, ["--url", "http://localhost:3100", "company", "delete", "1", "--yes", "--force"])
+    assert result.exit_code == 0
     assert "Deleted" in result.output
+
+
+@rsps.activate
+def test_company_archive(runner):
+    rsps.add(rsps.POST, "http://localhost:3100/api/companies/1/archive",
+             json={"id": "1", "status": "archived"})
+    result = runner.invoke(cli, ["--url", "http://localhost:3100", "company", "archive", "1"])
+    assert result.exit_code == 0
+    assert "Archived" in result.output
+
+
+@rsps.activate
+def test_company_unarchive(runner):
+    rsps.add(rsps.PATCH, "http://localhost:3100/api/companies/1",
+             json={"id": "1", "status": "active"})
+    result = runner.invoke(cli, ["--url", "http://localhost:3100", "company", "unarchive", "1"])
+    assert result.exit_code == 0
+    assert "Unarchived" in result.output
 
 
 @rsps.activate

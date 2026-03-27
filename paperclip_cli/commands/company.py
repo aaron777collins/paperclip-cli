@@ -119,15 +119,73 @@ def company_update(ctx, company_id, name, description, mission, as_json):
 @company.command("delete")
 @click.argument("company_id")
 @click.option("--yes", is_flag=True, help="Skip confirmation")
+@click.option("--force", is_flag=True, help="Attempt hard delete (may fail if company has skills attached)")
 @click.pass_context
-def company_delete(ctx, company_id, yes):
-    """Delete a company."""
+def company_delete(ctx, company_id, yes, force):
+    """Delete or archive a company.
+
+    \b
+    ⚠️  Paperclip cannot hard-delete companies that have default skills
+    attached (FK constraint). This command archives instead of deletes by
+    default — archived companies are hidden from the sidebar and stop scheduling.
+
+    Use --force to attempt a hard delete (only works on companies without skills).
+    Use 'company archive' directly for the recommended workflow.
+    """
     client: PaperclipClient = ctx.obj
     if not yes:
-        click.confirm(f"Delete company {company_id}?", abort=True)
+        click.confirm(f"Archive company {company_id}? (use --force for hard delete)", abort=True)
     try:
-        client.delete(f"/companies/{company_id}")
-        console.print(f"[green]✓[/green] Deleted company {company_id}")
+        if force:
+            client.delete(f"/companies/{company_id}")
+            console.print(f"[green]✓[/green] Deleted company {company_id}")
+        else:
+            client.post(f"/companies/{company_id}/archive")
+            console.print(f"[green]✓[/green] Archived company {company_id} (hidden from sidebar)")
+            console.print(f"[dim]  Use 'company unarchive {company_id}' to restore, or --force to attempt hard delete[/dim]")
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@company.command("archive")
+@click.argument("company_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def company_archive(ctx, company_id, as_json):
+    """Archive a company (hides from sidebar, stops all agent scheduling).
+
+    \b
+    Prefer archive over delete — Paperclip cannot hard-delete companies that
+    have default skills attached. Archive is safe and reversible.
+
+    Use 'company unarchive <id>' to restore.
+    """
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.post(f"/companies/{company_id}/archive")
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Archived company {company_id} — hidden from sidebar")
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@company.command("unarchive")
+@click.argument("company_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def company_unarchive(ctx, company_id, as_json):
+    """Restore an archived company (sets status back to active)."""
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.patch(f"/companies/{company_id}", {"status": "active"})
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Unarchived company {company_id} — status: active")
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
