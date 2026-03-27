@@ -72,10 +72,18 @@ ADAPTER_CHOICES = [
 @click.option("--model", default="claude-sonnet-4-6",
               type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
               help="Claude model — only applies to claude_local adapter (CEO defaults to opus)")
-@click.option("--max-turns", default=50, type=int, help="Max turns per run (default: 50)")
+@click.option("--max-turns", default=250, type=int, help="Max turns per run (default: 250)")
+@click.option("--cwd", default=None, help="Working directory for the agent process (claude_local/codex_local)")
+@click.option("--effort", default=None, type=click.Choice(["low", "medium", "high"]),
+              help="Reasoning effort level (claude_local)")
+@click.option("--runtime-config", "runtime_config_json", default=None,
+              help='Extra runtimeConfig fields as JSON (e.g. \'{"env":{"MY_VAR":"val"}}\')')
+@click.option("--adapter-config", "adapter_config_json", default=None,
+              help="Extra adapterConfig fields as JSON")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def agent_create(ctx, company_id, name, role, title, adapter_type, model, max_turns, as_json):
+def agent_create(ctx, company_id, name, role, title, adapter_type, model, max_turns,
+                 cwd, effort, runtime_config_json, adapter_config_json, as_json):
     """Create (hire) an agent for a company.
 
     \b
@@ -85,32 +93,74 @@ def agent_create(ctx, company_id, name, role, title, adapter_type, model, max_tu
       opencode_local   — OpenCode CLI
       pi_local         — Pi coding agent
       cursor           — Cursor IDE
-      openclaw_gateway — OpenClaw / Sophie
+      openclaw_gateway — OpenClaw / Sophie gateway
       hermes_local     — Hermes local agent
+
+    \b
+    Claude model tiers (--model, claude_local only):
+      claude-opus-4-6    — Strategic/complex (auto-default for CEO)
+      claude-sonnet-4-6  — Balanced (auto-default for general)
+      claude-haiku-4-6   — Fast/cheap for high-volume tasks
 
     \b
     Examples:
       paperclip-cli agent create --company <id> --name "CEO" --role ceo
       paperclip-cli agent create --company <id> --name "Engineer" --role general --model claude-opus-4-6
       paperclip-cli agent create --company <id> --name "Codex Worker" --adapter codex_local
+      paperclip-cli agent create --company <id> --name "Dev" --cwd /home/ubuntu/repos/myapp
+      paperclip-cli agent create --company <id> --name "Thinker" --effort high
     """
     client: PaperclipClient = ctx.obj
     # Default CEOs to opus for strategic reasoning
     if role == "ceo" and model == "claude-sonnet-4-6":
         model = "claude-opus-4-6"
     try:
+        # Build runtimeConfig and adapterConfig per adapter type
         runtime_config = {}
+        adapter_config = {}  # default empty
         if adapter_type == "claude_local":
             runtime_config = {
                 "model": model,
                 "dangerouslySkipPermissions": True,
                 "maxTurnsPerRun": max_turns,
             }
+            if cwd:
+                runtime_config["cwd"] = cwd
+            if effort:
+                runtime_config["effort"] = effort
+        elif adapter_type == "opencode_local":
+            # opencode_local requires model in adapterConfig (not runtimeConfig)
+            # model format: provider/model e.g. "anthropic/claude-sonnet-4-6"
+            runtime_config = {"maxTurnsPerRun": max_turns}
+            if cwd:
+                runtime_config["cwd"] = cwd
+            # Put model in adapterConfig if not already set via --adapter-config
+            if not adapter_config_json:
+                adapter_config = {"model": f"anthropic/{model}"}
+        elif adapter_type in ("codex_local", "pi_local"):
+            runtime_config = {"maxTurnsPerRun": max_turns}
+            if cwd:
+                runtime_config["cwd"] = cwd
+        # Merge extra runtime config
+        if runtime_config_json:
+            try:
+                extra = json.loads(runtime_config_json)
+                runtime_config.update(extra)
+            except json.JSONDecodeError as e:
+                console.print(f"[red]Error:[/red] --runtime-config is not valid JSON: {e}")
+                raise SystemExit(1)
+        # Build adapterConfig (may already be pre-set for opencode_local above)
+        if adapter_config_json:
+            try:
+                adapter_config = json.loads(adapter_config_json)
+            except json.JSONDecodeError as e:
+                console.print(f"[red]Error:[/red] --adapter-config is not valid JSON: {e}")
+                raise SystemExit(1)
         payload = {
             "name": name,
             "role": role,
             "adapterType": adapter_type,
-            "adapterConfig": {},
+            "adapterConfig": adapter_config,
             "runtimeConfig": runtime_config,
         }
         if title:
@@ -151,16 +201,22 @@ def agent_get(ctx, agent_id, as_json):
 @click.option("--role", default=None, type=click.Choice(["general", "ceo"]), help="New role")
 @click.option("--reports-to", default=None, help="Agent ID this agent reports to")
 @click.option("--budget", default=None, type=int, help="Monthly budget in cents")
-@click.option("--model", default=None,
-              type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
-              help="Claude model override")
-@click.option("--max-turns", default=None, type=int, help="Max turns per run")
 @click.option("--adapter", "adapter_type", default=None,
               type=click.Choice(ADAPTER_CHOICES),
-              help="Adapter/runtime (claude_local, codex_local, opencode_local, pi_local, cursor, openclaw_gateway, hermes_local)")
+              help="Adapter/runtime type")
+@click.option("--model", default=None,
+              type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
+              help="Claude model (claude_local only)")
+@click.option("--max-turns", default=None, type=int, help="Max turns per run")
+@click.option("--cwd", default=None, help="Working directory for agent process")
+@click.option("--effort", default=None, type=click.Choice(["low", "medium", "high"]),
+              help="Reasoning effort (claude_local)")
+@click.option("--runtime-config", "runtime_config_json", default=None,
+              help="Extra runtimeConfig fields as JSON")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def agent_update(ctx, agent_id, name, title, role, reports_to, budget, model, max_turns, adapter_type, as_json):
+def agent_update(ctx, agent_id, name, title, role, reports_to, budget, adapter_type,
+                 model, max_turns, cwd, effort, runtime_config_json, as_json):
     """Update an agent."""
     client: PaperclipClient = ctx.obj
     try:
@@ -177,13 +233,23 @@ def agent_update(ctx, agent_id, name, title, role, reports_to, budget, model, ma
             payload["budgetMonthlyCents"] = budget
         if adapter_type is not None:
             payload["adapterType"] = adapter_type
-        # Handle model/maxTurns via runtimeConfig
-        if model is not None or max_turns is not None:
-            runtime = {}
-            if model is not None:
-                runtime["model"] = model
-            if max_turns is not None:
-                runtime["maxTurnsPerRun"] = max_turns
+        # Build runtimeConfig patch
+        runtime = {}
+        if model is not None:
+            runtime["model"] = model
+        if max_turns is not None:
+            runtime["maxTurnsPerRun"] = max_turns
+        if cwd is not None:
+            runtime["cwd"] = cwd
+        if effort is not None:
+            runtime["effort"] = effort
+        if runtime_config_json:
+            try:
+                runtime.update(json.loads(runtime_config_json))
+            except json.JSONDecodeError as e:
+                console.print(f"[red]Error:[/red] --runtime-config invalid JSON: {e}")
+                raise SystemExit(1)
+        if runtime:
             payload["runtimeConfig"] = runtime
         result = client.patch(f"/agents/{agent_id}", payload)
         if as_json:
