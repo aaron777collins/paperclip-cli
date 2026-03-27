@@ -211,3 +211,64 @@ paperclip-cli project delete <project-id> --yes
 - **Routines require a project**: Every routine must belong to a project. You cannot create a routine without specifying `--project`.
 - `routineCount` is returned in the project `get` response — useful for checking before deletion.
 - The `--color` field accepts CSS hex colors (`#6366f1`, `#ff0000`, etc.). It's purely cosmetic for the web UI.
+
+---
+
+## project archive
+
+Archive a project by setting its status to `cancelled`. Removes it from active project views.
+
+> **Note:** Paperclip projects have no dedicated "archived" status. `cancelled` is the closest equivalent — it signals the project is no longer active without permanently deleting anything.
+
+```bash
+paperclip-cli project archive <project-id>
+```
+
+### Options
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--json` | No | false | Output updated project as JSON |
+
+### Example
+
+```
+✓ Archived project ff7d2546-... (status: cancelled)
+  Use 'project unarchive ff7d2546-...' to restore
+```
+
+---
+
+## project unarchive
+
+Restore a cancelled project back to `backlog` status.
+
+```bash
+paperclip-cli project unarchive <project-id>
+```
+
+### Options
+
+| Flag | Required | Default | Description |
+|------|----------|---------|-------------|
+| `--json` | No | false | Output updated project as JSON |
+
+### Example
+
+```
+✓ Restored project ff7d2546-... (status: backlog)
+```
+
+---
+
+## Valid Project Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `backlog` | Not yet started (default on create) |
+| `planned` | Planned for future work |
+| `in_progress` | Actively being worked on |
+| `completed` | Successfully finished |
+| `cancelled` | Cancelled/archived — hidden from active views |
+
+> ⚠️ Projects do NOT support `archived` or `paused` status — use `cancelled` to archive.

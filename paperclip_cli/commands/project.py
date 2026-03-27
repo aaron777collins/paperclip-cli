@@ -148,15 +148,69 @@ def project_update(ctx, project_id, name, description, status, goal_id, lead_age
 @project.command("delete")
 @click.argument("project_id")
 @click.option("--yes", is_flag=True, help="Skip confirmation")
+@click.option("--force", is_flag=True, help="Hard delete (also deletes all routines — irreversible)")
 @click.pass_context
-def project_delete(ctx, project_id, yes):
-    """Delete a project. ⚠️ Also deletes all routines in the project (cascade)."""
+def project_delete(ctx, project_id, yes, force):
+    """Archive or delete a project.
+
+    \b
+    By default, archives the project (sets status=cancelled, reversible).
+    Use --force for a hard delete — this ALSO deletes all routines in the project.
+    """
     client: PaperclipClient = ctx.obj
     if not yes:
-        click.confirm(f"Delete project {project_id}? This will also delete all routines in it.", abort=True)
+        action = "Hard delete" if force else "Archive"
+        click.confirm(f"{action} project {project_id}?", abort=True)
     try:
-        client.delete(f"/projects/{project_id}")
-        console.print(f"[green]✓[/green] Deleted project {project_id}")
+        if force:
+            client.delete(f"/projects/{project_id}")
+            console.print(f"[green]✓[/green] Deleted project {project_id} (and all its routines)")
+        else:
+            client.patch(f"/projects/{project_id}", {"status": "cancelled"})
+            console.print(f"[green]✓[/green] Archived project {project_id} (status: cancelled)")
+            console.print(f"[dim]  Use 'project unarchive {project_id}' to restore[/dim]")
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@project.command("archive")
+@click.argument("project_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def project_archive(ctx, project_id, as_json):
+    """Archive (cancel) a project — removes it from active work.
+
+    \b
+    Note: Paperclip projects do not have a dedicated archive status.
+    This sets status=cancelled, which hides the project from active views.
+    Use 'project unarchive <id>' to restore it to backlog.
+    """
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.patch(f"/projects/{project_id}", {"status": "cancelled"})
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Archived project {project_id} (status: cancelled)")
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@project.command("unarchive")
+@click.argument("project_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def project_unarchive(ctx, project_id, as_json):
+    """Restore a cancelled project back to backlog."""
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.patch(f"/projects/{project_id}", {"status": "backlog"})
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Restored project {project_id} (status: backlog)")
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
