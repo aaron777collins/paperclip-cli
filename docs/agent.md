@@ -21,6 +21,30 @@ paperclip-cli agent wakeup <agent-id>
 
 ---
 
+## Adapters
+
+Every agent needs an adapter — the runtime that actually executes work. Specify with `--adapter` on create.
+
+| Adapter | Description | Best for |
+|---------|-------------|----------|
+| `claude_local` | **Claude Code CLI** (default, recommended) | Most agents |
+| `codex_local` | OpenAI Codex CLI | Codex-specific workflows |
+| `opencode_local` | OpenCode CLI | OpenCode users |
+| `pi_local` | Pi coding agent | Pi workflows |
+| `cursor` | Cursor IDE | IDE-integrated agents |
+| `openclaw_gateway` | OpenClaw / Sophie gateway | Sophie/Hermes integration |
+| `hermes_local` | Hermes local agent | Hermes workflows |
+
+For `claude_local`, set the model with `--model`:
+
+| Model | Use for |
+|-------|---------|
+| `claude-opus-4-6` | CEOs, architects, strategic roles (auto-default for CEO role) |
+| `claude-sonnet-4-6` | Most workers — balanced speed/quality (default for general) |
+| `claude-haiku-4-6` | High-volume, fast, low-cost tasks |
+
+---
+
 ## Roles
 
 | Role | Description | Approval required? | `canCreateAgents` |
@@ -74,11 +98,17 @@ paperclip-cli agent list --company <company-id> --json
 Hire a new agent. CEOs are immediately active; general agents enter the board approval queue.
 
 ```bash
-# Hire a CEO
+# Hire a CEO (auto-approved, gets opus model by default)
 paperclip-cli agent create --company <company-id> --name "CEO" --role ceo --title "Chief Executive Officer"
 
-# Hire a general agent
+# Hire a general agent (sonnet by default)
 paperclip-cli agent create --company <company-id> --name "Engineer" --role general --title "Senior Backend Engineer"
+
+# Specify adapter explicitly
+paperclip-cli agent create --company <company-id> --name "Codex Worker" --adapter codex_local
+
+# Use haiku for high-volume cheap tasks
+paperclip-cli agent create --company <company-id> --name "Reporter" --adapter claude_local --model claude-haiku-4-6
 
 # With budget cap ($50/month = 5000 cents)
 paperclip-cli agent create --company <company-id> --name "Analyst" --role general --budget 5000
@@ -92,6 +122,9 @@ paperclip-cli agent create --company <company-id> --name "Analyst" --role genera
 | `--name` | Yes | — | Agent display name |
 | `--role` | No | `general` | `general` or `ceo` |
 | `--title` | No | — | Job title (display only) |
+| `--adapter` | No | `claude_local` | Runtime adapter (see Adapters section above) |
+| `--model` | No | `claude-sonnet-4-6` | Claude model (CEO auto-defaults to `claude-opus-4-6`) |
+| `--max-turns` | No | `50` | Max turns per run (claude_local only) |
 | `--reports-to` | No | — | Agent ID this agent reports to |
 | `--budget` | No | — | Monthly budget cap in cents (e.g. `5000` = $50/month) |
 | `--json` | No | false | Output created agent as JSON |

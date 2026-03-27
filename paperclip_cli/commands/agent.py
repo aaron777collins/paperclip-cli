@@ -50,44 +50,68 @@ def agent_list(ctx, company_id, as_json):
         raise SystemExit(1)
 
 
+ADAPTER_CHOICES = [
+    "claude_local",    # Claude Code CLI (recommended default)
+    "codex_local",     # OpenAI Codex CLI
+    "opencode_local",  # OpenCode CLI
+    "pi_local",        # Pi coding agent
+    "cursor",          # Cursor IDE
+    "openclaw_gateway",# OpenClaw gateway (Sophie/Hermes)
+    "hermes_local",    # Hermes local
+]
+
+
 @agent.command("create")
 @click.option("--company", "company_id", required=True, help="Company ID")
 @click.option("--name", required=True, help="Agent name")
 @click.option("--role", default="general", type=click.Choice(["general", "ceo"]), help="Agent role")
 @click.option("--title", default="", help="Agent title")
+@click.option("--adapter", "adapter_type", default="claude_local",
+              type=click.Choice(ADAPTER_CHOICES),
+              help="Agent adapter/runtime (default: claude_local = Claude Code CLI)")
 @click.option("--model", default="claude-sonnet-4-6",
               type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
-              help="Claude model (default: claude-sonnet-4-6; use opus for CEO/strategic roles)")
+              help="Claude model — only applies to claude_local adapter (CEO defaults to opus)")
 @click.option("--max-turns", default=50, type=int, help="Max turns per run (default: 50)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def agent_create(ctx, company_id, name, role, title, model, max_turns, as_json):
+def agent_create(ctx, company_id, name, role, title, adapter_type, model, max_turns, as_json):
     """Create (hire) an agent for a company.
 
     \b
-    All agents use the claude_local adapter (Claude Code CLI).
-    CEOs get opus by default for strategic reasoning; use --model to override.
+    Available adapters:
+      claude_local     — Claude Code CLI (default, recommended)
+      codex_local      — OpenAI Codex CLI
+      opencode_local   — OpenCode CLI
+      pi_local         — Pi coding agent
+      cursor           — Cursor IDE
+      openclaw_gateway — OpenClaw / Sophie
+      hermes_local     — Hermes local agent
 
     \b
     Examples:
-      paperclip-cli agent create --company <id> --name "CEO" --role ceo --model claude-opus-4-6
-      paperclip-cli agent create --company <id> --name "Engineer" --role general
+      paperclip-cli agent create --company <id> --name "CEO" --role ceo
+      paperclip-cli agent create --company <id> --name "Engineer" --role general --model claude-opus-4-6
+      paperclip-cli agent create --company <id> --name "Codex Worker" --adapter codex_local
     """
     client: PaperclipClient = ctx.obj
-    # Default CEOs to opus unless explicitly set
+    # Default CEOs to opus for strategic reasoning
     if role == "ceo" and model == "claude-sonnet-4-6":
         model = "claude-opus-4-6"
     try:
-        payload = {
-            "name": name,
-            "role": role,
-            "adapterType": "claude_local",
-            "adapterConfig": {},
-            "runtimeConfig": {
+        runtime_config = {}
+        if adapter_type == "claude_local":
+            runtime_config = {
                 "model": model,
                 "dangerouslySkipPermissions": True,
                 "maxTurnsPerRun": max_turns,
-            },
+            }
+        payload = {
+            "name": name,
+            "role": role,
+            "adapterType": adapter_type,
+            "adapterConfig": {},
+            "runtimeConfig": runtime_config,
         }
         if title:
             payload["title"] = title
@@ -131,7 +155,9 @@ def agent_get(ctx, agent_id, as_json):
               type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
               help="Claude model override")
 @click.option("--max-turns", default=None, type=int, help="Max turns per run")
-@click.option("--adapter-type", default=None, help="Adapter type (default: claude_local)")
+@click.option("--adapter", "adapter_type", default=None,
+              type=click.Choice(ADAPTER_CHOICES),
+              help="Adapter/runtime (claude_local, codex_local, opencode_local, pi_local, cursor, openclaw_gateway, hermes_local)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
 def agent_update(ctx, agent_id, name, title, role, reports_to, budget, model, max_turns, adapter_type, as_json):
