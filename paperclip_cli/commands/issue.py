@@ -135,3 +135,24 @@ def issue_delete(ctx, issue_id, yes):
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
+
+@issue.command("get")
+@click.argument("issue_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def issue_get(ctx, issue_id, as_json):
+    """Get full details for an issue.
+
+    Shows all fields including assigneeAgentId, status, goalId, priority.
+    """
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.get(f"/issues/{issue_id}")
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print_json(json.dumps(result))
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)

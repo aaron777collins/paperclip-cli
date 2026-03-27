@@ -10,12 +10,14 @@ Manage your AI companies, agents, goals, issues, board approvals, and plugins en
 |----------|:------:|:--------:|:-----:|:--------:|:--------:|-------|
 | **company** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | **agent** | ✅ | ✅ | ✅ | ✅ | ✅ | `wakeup` |
-| **goal** | ✅ | ✅ | — | ✅ | ✅ | — |
-| **issue** | ✅ | ✅ | — | ✅ | ✅ | — |
+| **goal** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **issue** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | **project** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| **routine** | ✅ | ✅ | ✅ | ✅ | `archive`¹ | `trigger-add`, `run` |
+| **routine** | ✅ | ✅ | ✅ | ✅ | `archive`¹ | `trigger-add`, `triggers`, `runs`, `run` |
 | **approval** | ✅ | — | — | — | — | `approve`, `reject` |
 | **plugin** | ✅ | — | — | — | — | `examples`, `install` |
+| **heartbeat** | ✅ | — | — | — | — | — |
+| **secret** | ✅ | — | — | — | — | — |
 
 > ¹ The Paperclip API has no hard-delete for routines. `routine archive` sets status=`archived` to stop all future runs. To fully remove, delete the parent project.
 

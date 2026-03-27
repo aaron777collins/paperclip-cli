@@ -304,3 +304,91 @@ def routine_run(ctx, routine_id, as_json):
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
+
+@routine.command("runs")
+@click.argument("routine_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def routine_runs(ctx, routine_id, as_json):
+    """List run history for a routine.
+
+    Shows each time the routine fired, its status, and any linked issue created.
+    """
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.get(f"/routines/{routine_id}/runs")
+        runs = result if isinstance(result, list) else result.get("runs", [])
+        if as_json:
+            click.echo(json.dumps(runs, indent=2))
+            return
+        if not runs:
+            console.print("[yellow]No runs found.[/yellow]")
+            return
+        table = Table(title=f"Routine Runs ({routine_id[:8]}…)")
+        table.add_column("ID", style="dim")
+        table.add_column("Status")
+        table.add_column("Source")
+        table.add_column("Triggered At")
+        table.add_column("Linked Issue")
+        for r in runs:
+            table.add_row(
+                str(r.get("id", ""))[:8] + "…",
+                r.get("status", ""),
+                r.get("source", ""),
+                str(r.get("triggeredAt", ""))[:19],
+                str(r.get("linkedIssueId") or ""),
+            )
+        console.print(table)
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@routine.command("triggers")
+@click.argument("routine_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def routine_triggers(ctx, routine_id, as_json):
+    """List triggers configured for a routine.
+
+    \b
+    Trigger kinds:
+      schedule  — cron expression (fires on a schedule)
+      webhook   — HTTP POST to a generated URL
+      api       — manual trigger via CLI or API
+
+    \b
+    Note: Trigger list is fetched via GET /api/routines/:id (triggers field).
+    Add triggers with: paperclip-cli routine trigger-add <routine-id> --kind schedule --cron "0 9 * * *"
+    """
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.get(f"/routines/{routine_id}")
+        triggers = result.get("triggers", [])
+        if as_json:
+            click.echo(json.dumps(triggers, indent=2))
+            return
+        if not triggers:
+            console.print("[yellow]No triggers configured.[/yellow]")
+            console.print(f'[dim]Add one: paperclip-cli routine trigger-add {routine_id} --kind schedule --cron "0 9 * * *"[/dim]')
+            return
+        table = Table(title=f"Triggers for Routine ({routine_id[:8]}…)")
+        table.add_column("ID", style="dim")
+        table.add_column("Kind")
+        table.add_column("Enabled")
+        table.add_column("Cron / Details")
+        table.add_column("Next Run")
+        for t in triggers:
+            detail = t.get("cronExpression") or t.get("signingMode") or ""
+            table.add_row(
+                str(t.get("id", ""))[:8] + "…",
+                t.get("kind", ""),
+                "✅" if t.get("enabled") else "❌",
+                detail,
+                str(t.get("nextRunAt") or "")[:19],
+            )
+        console.print(table)
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)

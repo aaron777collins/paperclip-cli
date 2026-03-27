@@ -15,6 +15,8 @@ from .commands.approval import approval
 from .commands.plugin import plugin
 from .commands.project import project
 from .commands.routine import routine
+from .commands.heartbeat import heartbeat
+from .commands.secret import secret
 
 CONFIG_PATH = Path.home() / ".config" / "paperclip-cli" / "config.json"
 console = Console()
@@ -77,6 +79,8 @@ cli.add_command(approval)
 cli.add_command(plugin)
 cli.add_command(project)
 cli.add_command(routine)
+cli.add_command(heartbeat)
+cli.add_command(secret)
 
 # Alias: paperclip-cli without arguments → help
 cli.add_command(status, name="health")

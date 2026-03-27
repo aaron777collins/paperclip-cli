@@ -22,12 +22,14 @@ No token needed for `local_trusted` mode (default dev setup).
 |----------|:----:|:------:|:---:|:------:|:------:|--------|
 | company | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | agent | ✅ | ✅ | ✅ | ✅ | ✅ | `wakeup` |
-| goal | ✅ | ✅ | — | ✅ | ✅ | — |
-| issue | ✅ | ✅ | — | ✅ | ✅ | — |
+| goal | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| issue | ✅ | ✅ | ✅ | ✅ | ✅ | — |
 | project | ✅ | ✅ | ✅ | ✅ | ✅ | — |
-| routine | ✅ | ✅ | ✅ | ✅ | `archive`¹ | `trigger-add`, `run` |
+| routine | ✅ | ✅ | ✅ | ✅ | `archive`¹ | `trigger-add`, `triggers`, `runs`, `run` |
 | approval | ✅ | — | — | — | — | `approve`, `reject` |
 | plugin | ✅ | — | — | — | — | `examples`, `install` |
+| heartbeat | ✅ | — | — | — | — | — |
+| secret | ✅ | — | — | — | — | — |
 
 > ¹ API has no hard-delete for routines. Use `routine archive` to stop runs. Delete parent project to fully remove.
 

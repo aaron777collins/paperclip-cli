@@ -112,3 +112,21 @@ def goal_delete(ctx, goal_id, yes):
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
+
+@goal.command("get")
+@click.argument("goal_id")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def goal_get(ctx, goal_id, as_json):
+    """Get full details for a goal."""
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.get(f"/goals/{goal_id}")
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print_json(json.dumps(result))
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
