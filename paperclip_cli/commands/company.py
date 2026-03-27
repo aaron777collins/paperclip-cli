@@ -8,9 +8,12 @@ from ..client import PaperclipClient, PaperclipError
 console = Console()
 
 
-@click.group()
-def company():
+@click.group(invoke_without_command=True)
+@click.pass_context
+def company(ctx):
     """Manage Paperclip companies."""
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 @company.command("list")
@@ -78,6 +81,35 @@ def company_get(ctx, company_id, as_json):
         if as_json:
             click.echo(json.dumps(result, indent=2))
             return
+        console.print_json(json.dumps(result))
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@company.command("update")
+@click.argument("company_id")
+@click.option("--name", default=None, help="New name")
+@click.option("--description", default=None, help="New description")
+@click.option("--mission", default=None, help="New mission statement")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def company_update(ctx, company_id, name, description, mission, as_json):
+    """Update a company."""
+    client: PaperclipClient = ctx.obj
+    try:
+        payload = {}
+        if name is not None:
+            payload["name"] = name
+        if description is not None:
+            payload["description"] = description
+        if mission is not None:
+            payload["mission"] = mission
+        result = client.patch(f"/companies/{company_id}", payload)
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Updated company {company_id}")
         console.print_json(json.dumps(result))
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")

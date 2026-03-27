@@ -8,9 +8,12 @@ from ..client import PaperclipClient, PaperclipError
 console = Console()
 
 
-@click.group()
-def agent():
+@click.group(invoke_without_command=True)
+@click.pass_context
+def agent(ctx):
     """Manage Paperclip agents."""
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 @agent.command("list")
@@ -50,20 +53,24 @@ def agent_list(ctx, company_id, as_json):
 @agent.command("create")
 @click.option("--company", "company_id", required=True, help="Company ID")
 @click.option("--name", required=True, help="Agent name")
-@click.option("--role", default="", help="Agent role/job title")
-@click.option("--instructions", default="", help="Agent instructions")
+@click.option("--role", default="general", type=click.Choice(["general", "ceo"]), help="Agent role")
+@click.option("--title", default="", help="Agent title")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def agent_create(ctx, company_id, name, role, instructions, as_json):
+def agent_create(ctx, company_id, name, role, title, as_json):
     """Create (hire) an agent for a company."""
     client: PaperclipClient = ctx.obj
     try:
-        payload = {"name": name}
-        if role:
-            payload["jobTitle"] = role
-        if instructions:
-            payload["instructions"] = instructions
-        result = client.post(f"/companies/{company_id}/agent-hires", payload)
+        payload = {
+            "name": name,
+            "role": role,
+            "adapterType": "process",
+            "adapterConfig": {},
+            "runtimeConfig": {},
+        }
+        if title:
+            payload["title"] = title
+        result = client.post(f"/companies/{company_id}/agents", payload)
         if as_json:
             click.echo(json.dumps(result, indent=2))
             return
@@ -92,6 +99,61 @@ def agent_get(ctx, agent_id, as_json):
         raise SystemExit(1)
 
 
+@agent.command("update")
+@click.argument("agent_id")
+@click.option("--name", default=None, help="New name")
+@click.option("--title", default=None, help="New title")
+@click.option("--role", default=None, type=click.Choice(["general", "ceo"]), help="New role")
+@click.option("--reports-to", default=None, help="Agent ID this agent reports to")
+@click.option("--budget", default=None, type=int, help="Monthly budget in cents")
+@click.option("--adapter-type", default=None, help="Adapter type")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def agent_update(ctx, agent_id, name, title, role, reports_to, budget, adapter_type, as_json):
+    """Update an agent."""
+    client: PaperclipClient = ctx.obj
+    try:
+        payload = {}
+        if name is not None:
+            payload["name"] = name
+        if title is not None:
+            payload["title"] = title
+        if role is not None:
+            payload["role"] = role
+        if reports_to is not None:
+            payload["reportsTo"] = reports_to
+        if budget is not None:
+            payload["budgetMonthlyCents"] = budget
+        if adapter_type is not None:
+            payload["adapterType"] = adapter_type
+        result = client.patch(f"/agents/{agent_id}", payload)
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Updated agent {agent_id}")
+        console.print_json(json.dumps(result))
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
+@agent.command("delete")
+@click.argument("agent_id")
+@click.option("--yes", is_flag=True, help="Skip confirmation")
+@click.pass_context
+def agent_delete(ctx, agent_id, yes):
+    """Delete an agent."""
+    client: PaperclipClient = ctx.obj
+    if not yes:
+        click.confirm(f"Delete agent {agent_id}?", abort=True)
+    try:
+        client.delete(f"/agents/{agent_id}")
+        console.print(f"[green]✓[/green] Deleted agent {agent_id}")
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
+
+
 @agent.command("wakeup")
 @click.argument("agent_id")
 @click.pass_context
@@ -99,7 +161,7 @@ def agent_wakeup(ctx, agent_id):
     """Wake up an agent to process their inbox."""
     client: PaperclipClient = ctx.obj
     try:
-        result = client.post(f"/agents/{agent_id}/wakeup")
+        client.post(f"/agents/{agent_id}/wakeup")
         console.print(f"[green]✓[/green] Woke up agent {agent_id}")
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")

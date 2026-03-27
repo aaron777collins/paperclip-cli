@@ -11,6 +11,8 @@ from .commands.agent import agent
 from .commands.goal import goal
 from .commands.issue import issue
 from .commands.status import status
+from .commands.approval import approval
+from .commands.plugin import plugin
 
 CONFIG_PATH = Path.home() / ".config" / "paperclip-cli" / "config.json"
 console = Console()
@@ -18,7 +20,7 @@ console = Console()
 CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
 
 
-@click.group(context_settings=CONTEXT_SETTINGS)
+@click.group(context_settings=CONTEXT_SETTINGS, invoke_without_command=True)
 @click.option("--url", envvar="PAPERCLIP_URL", default=None, help="Paperclip server URL")
 @click.option("--token", envvar="PAPERCLIP_TOKEN", default=None, help="Auth token")
 @click.version_option(package_name="paperclip-cli")
@@ -37,6 +39,8 @@ def cli(ctx, url, token):
     """
     ctx.ensure_object(dict)
     ctx.obj = PaperclipClient(base_url=url, token=token)
+    if ctx.invoked_subcommand is None:
+        click.echo(ctx.get_help())
 
 
 @cli.command()
@@ -67,6 +71,11 @@ cli.add_command(agent)
 cli.add_command(goal)
 cli.add_command(issue)
 cli.add_command(status)
+cli.add_command(approval)
+cli.add_command(plugin)
+
+# Alias: paperclip-cli without arguments → help
+cli.add_command(status, name="health")
 
 
 if __name__ == "__main__":
