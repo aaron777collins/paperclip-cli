@@ -118,3 +118,18 @@ All agents use `claude_local` adapter (Claude Code CLI). Set via `--model` on cr
 ## Full Reference
 
 📖 See [references/commands.md](references/commands.md) for complete option tables for every command.
+
+## Assignment Wakeup (Key Behavior)
+
+**Assigning an issue to an agent wakes them up immediately** — no need to wait for their scheduled heartbeat. This is how work gets pushed through fast:
+
+```bash
+# CEO assigns task → agent wakes immediately and starts working
+paperclip-cli issue update <issue-id> --status todo --assignee <agent-id>
+
+# Worker finishes → assigns to QA → QA wakes immediately for review  
+# (done inside the agent's AGENTS.md heartbeat procedure)
+```
+
+`PAPERCLIP_WAKE_REASON=assignment` is set in the agent's env when woken by assignment.
+`PAPERCLIP_TASK_ID` contains the specific issue ID that triggered the wake.
