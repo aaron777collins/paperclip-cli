@@ -67,28 +67,45 @@ export PAPERCLIP_TOKEN=your-token
 ## All Commands
 
 ```
-paperclip-cli configure    Configure server URL and token
-paperclip-cli status       Check server health
+paperclip-cli configure                         Configure server URL and token
+paperclip-cli status                            Check server health
 
 paperclip-cli company
-  list                     List all companies
-  create --name X          Create a company
-  get <id>                 Get company details
-  delete <id>              Delete a company
+  list                                          List all companies
+  create --name X [--description X] [--mission X]  Create a company
+  get <id>                                      Get company details
+  update <id> [--name X] [--description X] [--mission X]  Update a company
+  delete <id> [--yes]                           Delete a company
 
 paperclip-cli agent
-  list --company X         List agents for a company
-  create --company X       Hire an agent
-  get <id>                 Get agent details
-  wakeup <id>              Wake up an agent
+  list --company X                              List agents for a company
+  create --company X --name X [--role general|ceo] [--title X]  Hire an agent
+  get <id>                                      Get agent details
+  update <id> [--name X] [--title X] [--role X] [--reports-to X] [--budget X] [--adapter-type X]  Update an agent
+  delete <id> [--yes]                           Delete an agent
+  wakeup <id>                                   Wake up an agent
 
 paperclip-cli goal
-  list --company X         List goals
-  create --company X       Create a goal
+  list --company X                              List goals
+  create --company X --title X [--description X]  Create a goal
+  update <id> [--title X] [--description X] [--status X]  Update a goal
+  delete <id> [--yes]                           Delete a goal
 
 paperclip-cli issue
-  list --company X         List issues/tasks
-  create --company X       Create an issue
+  list --company X [--status X]                 List issues/tasks
+  create --company X --title X [--description X] [--goal X]  Create an issue
+  update <id> [--title X] [--description X] [--status X] [--assignee X]  Update an issue
+  delete <id> [--yes]                           Delete an issue
+
+paperclip-cli approval
+  list --company X                              List pending approvals
+  approve <id>                                  Approve a pending request
+  reject <id>                                   Reject a pending request
+
+paperclip-cli plugin
+  list                                          List installed plugins
+  examples                                      List example plugins
+  install <name-or-url>                         Install a plugin
 ```
 
 ## Running Paperclip
