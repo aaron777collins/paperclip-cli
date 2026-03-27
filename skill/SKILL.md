@@ -24,8 +24,12 @@ No token needed for `local_trusted` mode (default dev setup).
 | agent | ✅ | ✅ | ✅ | ✅ | ✅ | `wakeup` |
 | goal | ✅ | ✅ | — | ✅ | ✅ | — |
 | issue | ✅ | ✅ | — | ✅ | ✅ | — |
+| project | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| routine | ✅ | ✅ | ✅ | ✅ | `archive`¹ | `trigger-add`, `run` |
 | approval | ✅ | — | — | — | — | `approve`, `reject` |
 | plugin | ✅ | — | — | — | — | `examples`, `install` |
+
+> ¹ API has no hard-delete for routines. Use `routine archive` to stop runs. Delete parent project to fully remove.
 
 All commands: `--json` for machine output, `-h`/`--help` for usage, no-arg group → shows help.
 
@@ -85,7 +89,13 @@ paperclip-cli goal create --company $CO --title "Ship MVP"
 - **Agent statuses**: `idle`, `pending_approval`, `active`, `paused`, `error`
 - **Agent wakeup**: only works when status = `idle`
 - **Issue default status**: newly created issues start as `backlog`
+- **Issue statuses**: `backlog`, `todo`, `in_progress`, `done`, `cancelled` — NOT `open`
+- **`in_progress` issues require `--assignee`**: API 422 if no assignee set
 - **Agent roles**: `ceo` (auto-approved) or `general` (requires approval)
+- **Routines require project + assignee**: both fields are mandatory on create
+- **No routine hard-delete**: use `routine archive` (sets status=archived); delete parent project to fully purge
+- **Routine triggers**: `schedule` (cron), `webhook` (HTTP POST), `api` (manual via `routine run`)
+- **Project delete cascades**: deletes all routines in that project
 - **Server config**: bound to `127.0.0.1:3100`; Docker reaches it via socat proxy on `172.18.0.1:3101`
 
 ## Full Reference
