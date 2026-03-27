@@ -55,18 +55,39 @@ def agent_list(ctx, company_id, as_json):
 @click.option("--name", required=True, help="Agent name")
 @click.option("--role", default="general", type=click.Choice(["general", "ceo"]), help="Agent role")
 @click.option("--title", default="", help="Agent title")
+@click.option("--model", default="claude-sonnet-4-6",
+              type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
+              help="Claude model (default: claude-sonnet-4-6; use opus for CEO/strategic roles)")
+@click.option("--max-turns", default=50, type=int, help="Max turns per run (default: 50)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def agent_create(ctx, company_id, name, role, title, as_json):
-    """Create (hire) an agent for a company."""
+def agent_create(ctx, company_id, name, role, title, model, max_turns, as_json):
+    """Create (hire) an agent for a company.
+
+    \b
+    All agents use the claude_local adapter (Claude Code CLI).
+    CEOs get opus by default for strategic reasoning; use --model to override.
+
+    \b
+    Examples:
+      paperclip-cli agent create --company <id> --name "CEO" --role ceo --model claude-opus-4-6
+      paperclip-cli agent create --company <id> --name "Engineer" --role general
+    """
     client: PaperclipClient = ctx.obj
+    # Default CEOs to opus unless explicitly set
+    if role == "ceo" and model == "claude-sonnet-4-6":
+        model = "claude-opus-4-6"
     try:
         payload = {
             "name": name,
             "role": role,
-            "adapterType": "process",
+            "adapterType": "claude_local",
             "adapterConfig": {},
-            "runtimeConfig": {},
+            "runtimeConfig": {
+                "model": model,
+                "dangerouslySkipPermissions": True,
+                "maxTurnsPerRun": max_turns,
+            },
         }
         if title:
             payload["title"] = title
@@ -106,10 +127,14 @@ def agent_get(ctx, agent_id, as_json):
 @click.option("--role", default=None, type=click.Choice(["general", "ceo"]), help="New role")
 @click.option("--reports-to", default=None, help="Agent ID this agent reports to")
 @click.option("--budget", default=None, type=int, help="Monthly budget in cents")
-@click.option("--adapter-type", default=None, help="Adapter type")
+@click.option("--model", default=None,
+              type=click.Choice(["claude-opus-4-6", "claude-sonnet-4-6", "claude-haiku-4-6"]),
+              help="Claude model override")
+@click.option("--max-turns", default=None, type=int, help="Max turns per run")
+@click.option("--adapter-type", default=None, help="Adapter type (default: claude_local)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
-def agent_update(ctx, agent_id, name, title, role, reports_to, budget, adapter_type, as_json):
+def agent_update(ctx, agent_id, name, title, role, reports_to, budget, model, max_turns, adapter_type, as_json):
     """Update an agent."""
     client: PaperclipClient = ctx.obj
     try:
@@ -126,6 +151,14 @@ def agent_update(ctx, agent_id, name, title, role, reports_to, budget, adapter_t
             payload["budgetMonthlyCents"] = budget
         if adapter_type is not None:
             payload["adapterType"] = adapter_type
+        # Handle model/maxTurns via runtimeConfig
+        if model is not None or max_turns is not None:
+            runtime = {}
+            if model is not None:
+                runtime["model"] = model
+            if max_turns is not None:
+                runtime["maxTurnsPerRun"] = max_turns
+            payload["runtimeConfig"] = runtime
         result = client.patch(f"/agents/{agent_id}", payload)
         if as_json:
             click.echo(json.dumps(result, indent=2))

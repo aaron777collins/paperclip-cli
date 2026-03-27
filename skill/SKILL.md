@@ -48,11 +48,15 @@ AG=$(paperclip-cli agent list --company $CO --json | python3 -c "import sys,json
 
 ### Hire an agent
 ```bash
-# CEO — auto-approved, canCreateAgents:true, status starts as idle
+# All agents use claude_local adapter (Claude Code CLI) by default
+# CEOs auto-default to opus; general agents to sonnet
+
+# CEO — auto-approved, canCreateAgents:true, opus model
 paperclip-cli agent create --company $CO --name "CEO" --role ceo --title "Chief Executive Officer"
 
-# General agent — goes to board approval queue, status starts as pending_approval
+# General agent — sonnet by default, override with --model
 paperclip-cli agent create --company $CO --name "Engineer" --role general --title "Backend Engineer"
+paperclip-cli agent create --company $CO --name "Architect" --role general --model claude-opus-4-6
 
 # Approve the hire
 APPROVAL=$(paperclip-cli approval list --company $CO --json | python3 -c "import sys,json; print(next(a['id'] for a in json.load(sys.stdin) if a['status']=='pending'))")
@@ -84,6 +88,17 @@ paperclip-cli approval list --company $CO --json \
   | while read id; do paperclip-cli approval approve $id; done
 paperclip-cli goal create --company $CO --title "Ship MVP"
 ```
+
+## Adapter & Models
+
+All agents use `claude_local` adapter (Claude Code CLI). Set via `--model` on create:
+
+| Role | Default Model | Override |
+|------|--------------|---------|
+| CEO | `claude-opus-4-6` | `--model claude-sonnet-4-6` |
+| General | `claude-sonnet-4-6` | `--model claude-opus-4-6` |
+
+`dangerouslySkipPermissions: true` and `maxTurnsPerRun: 50` set by default.
 
 ## API Notes (important gotchas)
 
