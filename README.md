@@ -1,123 +1,551 @@
 # paperclip-cli
 
-Python CLI for [Paperclip](https://github.com/paperclipai/paperclip) — the open-source AI agent orchestration platform.
+A full-featured Python CLI for [Paperclip](https://github.com/paperclipai/paperclip) — the open-source AI agent orchestration platform.
 
-Manage your AI companies, agents, goals, and tasks from the terminal.
+Manage your AI companies, agents, goals, issues, board approvals, and plugins entirely from the terminal.
+
+---
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configuration](#configuration)
+- [Commands Reference](#commands-reference)
+  - [status](#status)
+  - [company](#company)
+  - [agent](#agent)
+  - [goal](#goal)
+  - [issue](#issue)
+  - [approval](#approval)
+  - [plugin](#plugin)
+- [JSON Output](#json-output)
+- [Environment Variables](#environment-variables)
+- [Tips & Patterns](#tips--patterns)
+
+---
 
 ## Installation
 
-```bash
-pip install paperclip-cli
-```
+**From source (recommended while in development):**
 
-Or from source:
 ```bash
 git clone https://github.com/aaron777collins/paperclip-cli.git
 cd paperclip-cli
 pip install -e .
 ```
 
+**Via pip (when published):**
+
+```bash
+pip install paperclip-cli
+```
+
+---
+
 ## Quick Start
 
 ```bash
-# Configure (one-time)
+# 1. Point the CLI at your Paperclip server (one-time setup)
 paperclip-cli configure --url http://localhost:3100
 
-# Check server health
+# 2. Verify it can reach the server
 paperclip-cli status
 
-# Create a company
-paperclip-cli company create --name "TenantHelper" --description "AI property management"
+# 3. Create your first company
+paperclip-cli company create --name "AcmeCorp" --description "My first AI company"
 
-# List companies
+# 4. Grab the company ID
 paperclip-cli company list
 
-# Add an agent
-paperclip-cli agent create --company <company-id> --name "Coordinator" --role "Project Coordinator"
+# 5. Hire a CEO (auto-approved, can create other agents)
+paperclip-cli agent create --company <company-id> --name "CEO" --role ceo --title "Chief Executive Officer"
 
-# List agents
-paperclip-cli agent list --company <company-id>
+# 6. Hire a general agent
+paperclip-cli agent create --company <company-id> --name "Engineer" --role general --title "Backend Engineer"
 
-# Create a goal
-paperclip-cli goal create --company <company-id> --title "Build MVP"
+# 7. Approve the hire from the board queue
+paperclip-cli approval list --company <company-id>
+paperclip-cli approval approve <approval-id>
 
-# Create an issue/task
-paperclip-cli issue create --company <company-id> --title "Implement login page"
-
-# Wake up an agent
-paperclip-cli agent wakeup <agent-id>
+# 8. Create a goal and track work
+paperclip-cli goal create --company <company-id> --title "Launch v1.0"
+paperclip-cli issue create --company <company-id> --title "Build auth system"
 ```
 
-## JSON Output
+---
 
-Every command supports `--json` for machine-readable output:
+## Configuration
+
+Configure the CLI once with your server URL (and optionally an auth token):
 
 ```bash
-paperclip-cli company list --json
-paperclip-cli status --json
+paperclip-cli configure --url http://localhost:3100
+# With auth token (for authenticated/private mode servers):
+paperclip-cli configure --url https://paperclip.example.com --token my-secret-token
 ```
 
-## Environment Variables
+Config is saved to `~/.config/paperclip-cli/config.json`.
+
+You can also use environment variables (override the saved config):
 
 ```bash
 export PAPERCLIP_URL=http://localhost:3100
 export PAPERCLIP_TOKEN=your-token
 ```
 
-## All Commands
-
-```
-paperclip-cli configure                         Configure server URL and token
-paperclip-cli status                            Check server health
-
-paperclip-cli company
-  list                                          List all companies
-  create --name X [--description X] [--mission X]  Create a company
-  get <id>                                      Get company details
-  update <id> [--name X] [--description X] [--mission X]  Update a company
-  delete <id> [--yes]                           Delete a company
-
-paperclip-cli agent
-  list --company X                              List agents for a company
-  create --company X --name X [--role general|ceo] [--title X]  Hire an agent
-  get <id>                                      Get agent details
-  update <id> [--name X] [--title X] [--role X] [--reports-to X] [--budget X] [--adapter-type X]  Update an agent
-  delete <id> [--yes]                           Delete an agent
-  wakeup <id>                                   Wake up an agent
-
-paperclip-cli goal
-  list --company X                              List goals
-  create --company X --title X [--description X]  Create a goal
-  update <id> [--title X] [--description X] [--status X]  Update a goal
-  delete <id> [--yes]                           Delete a goal
-
-paperclip-cli issue
-  list --company X [--status X]                 List issues/tasks
-  create --company X --title X [--description X] [--goal X]  Create an issue
-  update <id> [--title X] [--description X] [--status X] [--assignee X]  Update an issue
-  delete <id> [--yes]                           Delete an issue
-
-paperclip-cli approval
-  list --company X                              List pending approvals
-  approve <id>                                  Approve a pending request
-  reject <id>                                   Reject a pending request
-
-paperclip-cli plugin
-  list                                          List installed plugins
-  examples                                      List example plugins
-  install <name-or-url>                         Install a plugin
-```
-
-## Running Paperclip
+Or pass flags directly on any command:
 
 ```bash
-# Clone and start Paperclip
-git clone https://github.com/paperclipai/paperclip.git
-cd paperclip
-pnpm install
-pnpm dev
-# Server at http://localhost:3100
+paperclip-cli --url http://localhost:3100 company list
 ```
+
+---
+
+## Commands Reference
+
+All commands support `-h` / `--help`. Running a command group with no subcommand also shows help:
+
+```bash
+paperclip-cli --help
+paperclip-cli company        # shows company subcommands
+paperclip-cli agent --help
+```
+
+---
+
+### status
+
+Check that the Paperclip server is reachable and healthy.
+
+```bash
+paperclip-cli status
+paperclip-cli status --json
+```
+
+**Example output:**
+```
+✓ Paperclip is healthy
+  URL:  http://localhost:3100
+  Version: 2026.325.0
+  Mode: local_trusted
+```
+
+---
+
+### company
+
+Manage your AI companies. Each company is an isolated org with its own agents, goals, issues, and budget.
+
+#### `company list`
+
+List all companies on the server.
+
+```bash
+paperclip-cli company list
+paperclip-cli company list --json
+```
+
+#### `company create`
+
+Create a new company.
+
+```bash
+paperclip-cli company create --name "TenantHelper"
+paperclip-cli company create --name "TenantHelper" --description "AI property management platform"
+paperclip-cli company create --name "TenantHelper" --description "..." --mission "Automate landlord ops"
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--name` | ✅ | Company name |
+| `--description` | No | Short description |
+| `--mission` | No | Mission statement |
+| `--json` | No | Output raw JSON |
+
+#### `company get`
+
+Get full details for one company.
+
+```bash
+paperclip-cli company get <company-id>
+paperclip-cli company get 6ef9c662-776f-43e0-8e7e-55f36c309edb --json
+```
+
+#### `company update`
+
+Update a company's name, description, or mission.
+
+```bash
+paperclip-cli company update <company-id> --name "New Name"
+paperclip-cli company update <company-id> --description "Updated description" --mission "New mission"
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name` | New company name |
+| `--description` | New description |
+| `--mission` | New mission statement |
+
+#### `company delete`
+
+Permanently delete a company and all its data.
+
+```bash
+paperclip-cli company delete <company-id> --yes
+# Without --yes, you'll be prompted to confirm
+paperclip-cli company delete <company-id>
+```
+
+> ⚠️ This is irreversible. All agents, goals, and issues will be deleted.
+
+---
+
+### agent
+
+Manage agents (the AI workers) inside a company.
+
+**Roles:**
+- `ceo` — Auto-approved. Has `canCreateAgents: true`. Sits at the top of the org chart.
+- `general` — Regular agent. Requires board approval before becoming active.
+
+#### `agent list`
+
+List all agents in a company.
+
+```bash
+paperclip-cli agent list --company <company-id>
+paperclip-cli agent list --company <company-id> --json
+```
+
+Shows: ID, name, role, status (idle / pending_approval / active / paused).
+
+#### `agent create`
+
+Hire a new agent. CEOs are auto-approved; general agents go to the board approval queue.
+
+```bash
+# Hire a CEO
+paperclip-cli agent create --company <company-id> --name "CEO" --role ceo --title "Chief Executive Officer"
+
+# Hire a general agent
+paperclip-cli agent create --company <company-id> --name "Engineer" --role general --title "Senior Backend Engineer"
+```
+
+| Option | Required | Default | Description |
+|--------|----------|---------|-------------|
+| `--company` | ✅ | — | Company ID |
+| `--name` | ✅ | — | Agent name |
+| `--role` | No | `general` | `general` or `ceo` |
+| `--title` | No | — | Job title (display only) |
+
+#### `agent get`
+
+Get full details for one agent.
+
+```bash
+paperclip-cli agent get <agent-id>
+paperclip-cli agent get <agent-id> --json
+```
+
+Shows all fields: status, role, permissions, budget, adapter config, last heartbeat.
+
+#### `agent update`
+
+Update an agent's name, title, role, budget, or adapter config.
+
+```bash
+paperclip-cli agent update <agent-id> --title "Lead Engineer"
+paperclip-cli agent update <agent-id> --name "CTO" --role ceo
+paperclip-cli agent update <agent-id> --budget 5000   # $50.00/month in cents
+```
+
+| Option | Description |
+|--------|-------------|
+| `--name` | New name |
+| `--title` | New job title |
+| `--role` | New role (`general` or `ceo`) |
+| `--reports-to` | Agent ID this agent reports to |
+| `--budget` | Monthly budget cap in cents (e.g. `5000` = $50/month) |
+| `--adapter-type` | Adapter type (default: `process`) |
+
+#### `agent delete`
+
+Remove an agent from a company.
+
+```bash
+paperclip-cli agent delete <agent-id> --yes
+```
+
+#### `agent wakeup`
+
+Send a wake-up signal to an idle agent so it checks its inbox and processes pending tasks.
+
+```bash
+paperclip-cli agent wakeup <agent-id>
+```
+
+> Note: Only works when the agent's status is `idle`. Active or paused agents will return an error.
+
+---
+
+### goal
+
+Goals are high-level objectives for a company. Issues/tasks are attached to goals.
+
+#### `goal list`
+
+List all goals for a company.
+
+```bash
+paperclip-cli goal list --company <company-id>
+paperclip-cli goal list --company <company-id> --json
+```
+
+#### `goal create`
+
+Create a new goal.
+
+```bash
+paperclip-cli goal create --company <company-id> --title "Reach $10k MRR"
+paperclip-cli goal create --company <company-id> --title "Reach $10k MRR" --description "By end of Q2 2026"
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--company` | ✅ | Company ID |
+| `--title` | ✅ | Goal title |
+| `--description` | No | Longer description |
+
+#### `goal update`
+
+Update a goal's title, description, or status.
+
+```bash
+paperclip-cli goal update <goal-id> --title "Reach $20k MRR"
+paperclip-cli goal update <goal-id> --status completed
+```
+
+#### `goal delete`
+
+Delete a goal.
+
+```bash
+paperclip-cli goal delete <goal-id> --yes
+```
+
+---
+
+### issue
+
+Issues are tasks/tickets that agents work on. They can be attached to a goal.
+
+#### `issue list`
+
+List all issues for a company.
+
+```bash
+paperclip-cli issue list --company <company-id>
+paperclip-cli issue list --company <company-id> --status open
+paperclip-cli issue list --company <company-id> --status in_progress --json
+```
+
+| Option | Description |
+|--------|-------------|
+| `--company` | ✅ Company ID |
+| `--status` | Filter by status: `open`, `in_progress`, `done`, etc. |
+
+#### `issue create`
+
+Create a new issue/task, optionally linked to a goal.
+
+```bash
+paperclip-cli issue create --company <company-id> --title "Implement login flow"
+paperclip-cli issue create --company <company-id> --title "Fix signup bug" --description "Users can't sign up with Gmail" --goal <goal-id>
+```
+
+| Option | Required | Description |
+|--------|----------|-------------|
+| `--company` | ✅ | Company ID |
+| `--title` | ✅ | Issue title |
+| `--description` | No | Detailed description |
+| `--goal` | No | Goal ID to attach this issue to |
+
+#### `issue update`
+
+Update an issue's title, description, status, or assignee.
+
+```bash
+paperclip-cli issue update <issue-id> --status in_progress
+paperclip-cli issue update <issue-id> --title "Fix signup bug (Gmail)" --status done
+paperclip-cli issue update <issue-id> --assignee <agent-id>
+```
+
+| Option | Description |
+|--------|-------------|
+| `--title` | New title |
+| `--description` | New description |
+| `--status` | New status: `open`, `in_progress`, `done`, etc. |
+| `--assignee` | Agent ID to assign the issue to |
+
+#### `issue delete`
+
+Delete an issue.
+
+```bash
+paperclip-cli issue delete <issue-id> --yes
+```
+
+---
+
+### approval
+
+The board approval queue. When a general agent is hired (or other governed actions occur), they appear here as pending approvals. You must approve them before the agent becomes active.
+
+#### `approval list`
+
+List all pending (and past) approvals for a company.
+
+```bash
+paperclip-cli approval list --company <company-id>
+paperclip-cli approval list --company <company-id> --json
+```
+
+Shows: ID, type (e.g. `hire_agent`), status (`pending` / `approved` / `rejected`), requested by.
+
+#### `approval approve`
+
+Approve a pending action (e.g. hire an agent).
+
+```bash
+paperclip-cli approval approve <approval-id>
+```
+
+Once approved, the agent's status changes from `pending_approval` to `idle` and they become active.
+
+#### `approval reject`
+
+Reject a pending action.
+
+```bash
+paperclip-cli approval reject <approval-id>
+```
+
+---
+
+### plugin
+
+Manage Paperclip plugins that extend agent capabilities.
+
+#### `plugin list`
+
+List currently installed plugins.
+
+```bash
+paperclip-cli plugin list
+paperclip-cli plugin list --json
+```
+
+#### `plugin examples`
+
+Browse available example plugins from the Paperclip registry.
+
+```bash
+paperclip-cli plugin examples
+paperclip-cli plugin examples --json
+```
+
+#### `plugin install`
+
+Install a plugin by name or URL.
+
+```bash
+paperclip-cli plugin install <name-or-url>
+```
+
+---
+
+## JSON Output
+
+Every read command supports `--json` for clean machine-readable output — great for scripting, piping to `jq`, or agent automation:
+
+```bash
+# Get a company ID by name
+paperclip-cli company list --json | jq -r '.[] | select(.name=="TenantHelper") | .id'
+
+# List all pending approvals across all companies
+paperclip-cli company list --json | jq -r '.[].id' | while read id; do
+  echo "=== $id ==="
+  paperclip-cli approval list --company $id --json | jq '.[] | select(.status=="pending")'
+done
+
+# Check all agent statuses
+paperclip-cli agent list --company <id> --json | jq '.[] | {name, status, role}'
+```
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `PAPERCLIP_URL` | Server URL (overrides saved config) |
+| `PAPERCLIP_TOKEN` | Auth token (overrides saved config) |
+
+```bash
+PAPERCLIP_URL=http://localhost:3100 paperclip-cli company list
+```
+
+---
+
+## Tips & Patterns
+
+### Get IDs quickly
+
+Use `--json` + `jq` to grab IDs without copying from tables:
+
+```bash
+# Company ID
+COMPANY=$(paperclip-cli company list --json | jq -r '.[] | select(.name=="TenantHelper") | .id')
+
+# Agent ID
+AGENT=$(paperclip-cli agent list --company $COMPANY --json | jq -r '.[] | select(.name=="CEO") | .id')
+```
+
+### Approve all pending hires at once
+
+```bash
+COMPANY=<company-id>
+paperclip-cli approval list --company $COMPANY --json \
+  | jq -r '.[] | select(.status=="pending") | .id' \
+  | while read id; do paperclip-cli approval approve $id; done
+```
+
+### Bootstrap a new company end-to-end
+
+```bash
+# Create company
+CO=$(paperclip-cli company create --name "NewCo" --description "New AI company" --json | jq -r '.id')
+
+# Hire CEO (auto-approved)
+paperclip-cli agent create --company $CO --name "CEO" --role ceo --title "Chief Executive Officer"
+
+# Hire some agents
+paperclip-cli agent create --company $CO --name "Engineer" --role general --title "Backend Engineer"
+paperclip-cli agent create --company $CO --name "Designer" --role general --title "Product Designer"
+
+# Approve all pending hires
+paperclip-cli approval list --company $CO --json \
+  | jq -r '.[] | select(.status=="pending") | .id' \
+  | while read id; do paperclip-cli approval approve $id; done
+
+# Set a goal
+paperclip-cli goal create --company $CO --title "Ship MVP" --description "First working product"
+
+echo "Done! Company $CO is running."
+```
+
+---
 
 ## License
 
