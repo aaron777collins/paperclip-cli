@@ -376,17 +376,20 @@ paperclip-cli issue create --company <company-id> --title "Fix signup bug" --des
 Update an issue's title, description, status, or assignee.
 
 ```bash
-paperclip-cli issue update <issue-id> --status in_progress
+paperclip-cli issue update <issue-id> --status done
 paperclip-cli issue update <issue-id> --title "Fix signup bug (Gmail)" --status done
-paperclip-cli issue update <issue-id> --assignee <agent-id>
+# in_progress requires an assignee:
+paperclip-cli issue update <issue-id> --status in_progress --assignee <agent-id>
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--title` | New title |
 | `--description` | New description |
-| `--status` | New status: `open`, `in_progress`, `done`, etc. |
-| `--assignee` | Agent ID to assign the issue to |
+| `--status` | New status: `backlog`, `todo`, `in_progress`, `done`, `cancelled` |
+| `--assignee` | Agent ID to assign the issue to (⚠️ required when setting `in_progress`) |
+
+> **Note:** Setting `--status in_progress` requires `--assignee <agent-id>` — the API enforces that in-progress issues must have an assignee.
 
 #### `issue delete`
 

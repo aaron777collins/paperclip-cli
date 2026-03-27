@@ -46,7 +46,7 @@ def issue_list(ctx, company_id, status, as_json):
                 str(i.get("id", "")),
                 i.get("title", ""),
                 i.get("status", ""),
-                i.get("assignee", {}).get("name", "") if isinstance(i.get("assignee"), dict) else str(i.get("assigneeId", "")),
+                str(i.get("assigneeAgentId") or i.get("assigneeUserId") or ""),
             )
         console.print(table)
     except PaperclipError as e:
@@ -85,12 +85,19 @@ def issue_create(ctx, company_id, title, description, goal_id, as_json):
 @click.argument("issue_id")
 @click.option("--title", default=None, help="New title")
 @click.option("--description", default=None, help="New description")
-@click.option("--status", default=None, help="New status")
-@click.option("--assignee", "assignee_id", default=None, help="Assignee agent ID")
+@click.option("--status", default=None,
+              type=click.Choice(["backlog", "todo", "in_progress", "done", "cancelled"]),
+              help="New status. Note: in_progress requires --assignee")
+@click.option("--assignee", "assignee_id", default=None,
+              help="Assignee agent ID (required when setting --status in_progress)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
 def issue_update(ctx, issue_id, title, description, status, assignee_id, as_json):
-    """Update an issue."""
+    """Update an issue.
+
+    Valid statuses: backlog, todo, in_progress, done, cancelled.
+    Note: setting --status in_progress requires --assignee <agent-id>.
+    """
     client: PaperclipClient = ctx.obj
     try:
         payload = {}
@@ -101,7 +108,7 @@ def issue_update(ctx, issue_id, title, description, status, assignee_id, as_json
         if status is not None:
             payload["status"] = status
         if assignee_id is not None:
-            payload["assigneeId"] = assignee_id
+            payload["assigneeAgentId"] = assignee_id
         result = client.patch(f"/issues/{issue_id}", payload)
         if as_json:
             click.echo(json.dumps(result, indent=2))
