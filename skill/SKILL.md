@@ -89,7 +89,7 @@ paperclip-cli approval list --company $CO --json \
 paperclip-cli goal create --company $CO --title "Ship MVP"
 ```
 
-## Adapter & Models
+## Adapter & Models (adapterConfig)
 
 All agents use `claude_local` adapter (Claude Code CLI). Set via `--model` on create:
 

@@ -46,7 +46,7 @@ For `claude_local`, set the model with `--model`:
 
 ### ⚠️ Important: runtimeConfig vs adapterConfig
 
-When using `claude_local`, the CLI automatically sets these in `runtimeConfig` (NOT `adapterConfig`):
+When using `claude_local`, the CLI automatically sets these in `adapterConfig` (where the adapter reads them):
 
 | Field | Default | Description |
 |-------|---------|-------------|
@@ -56,7 +56,7 @@ When using `claude_local`, the CLI automatically sets these in `runtimeConfig` (
 | `cwd` | (Paperclip sets this) | Working directory for the agent |
 | `effort` | (not set) | Reasoning effort: `low`, `medium`, or `high` |
 
-**Leave `adapterConfig: {}` empty** — Paperclip auto-populates it with the correct `instructionsFilePath` pointing to the agent's `AGENTS.md`. If you put `model` or `cwd` in `adapterConfig` it blocks this auto-setup and your agent instructions will be empty.
+The CLI sets `model`, `dangerouslySkipPermissions`, and `maxTurnsPerRun` in `adapterConfig` alongside the auto-populated `instructionsFilePath`. This is correct — the claude_local adapter reads all config from `adapterConfig`.
 
 ### Assignment Wakeup
 
