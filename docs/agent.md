@@ -43,6 +43,25 @@ For `claude_local`, set the model with `--model`:
 | `claude-sonnet-4-6` | Most workers — balanced speed/quality (default for general) |
 | `claude-haiku-4-6` | High-volume, fast, low-cost tasks |
 
+
+### ⚠️ Important: runtimeConfig vs adapterConfig
+
+When using `claude_local`, the CLI automatically sets these in `runtimeConfig` (NOT `adapterConfig`):
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `model` | `claude-sonnet-4-6` (CEO: `claude-opus-4-6`) | Claude model to use |
+| `dangerouslySkipPermissions` | `true` | Skip Claude Code permission prompts (required for automation) |
+| `maxTurnsPerRun` | `250` | Max tool-use turns before the run ends |
+| `cwd` | (Paperclip sets this) | Working directory for the agent |
+| `effort` | (not set) | Reasoning effort: `low`, `medium`, or `high` |
+
+**Leave `adapterConfig: {}` empty** — Paperclip auto-populates it with the correct `instructionsFilePath` pointing to the agent's `AGENTS.md`. If you put `model` or `cwd` in `adapterConfig` it blocks this auto-setup and your agent instructions will be empty.
+
+### Assignment Wakeup
+
+When you assign an issue to an agent, **they wake up immediately** — no need to wait for their scheduled heartbeat. The agent receives `PAPERCLIP_WAKE_REASON=assignment` and `PAPERCLIP_TASK_ID=<issue-id>`.
+
 ---
 
 ## Roles
@@ -124,7 +143,7 @@ paperclip-cli agent create --company <company-id> --name "Analyst" --role genera
 | `--title` | No | — | Job title (display only) |
 | `--adapter` | No | `claude_local` | Runtime adapter (see Adapters section above) |
 | `--model` | No | `claude-sonnet-4-6` | Claude model (CEO auto-defaults to `claude-opus-4-6`) |
-| `--max-turns` | No | `50` | Max turns per run (claude_local only) |
+| `--max-turns` | No | `250` | Max turns per run (claude_local only) |
 | `--reports-to` | No | — | Agent ID this agent reports to |
 | `--budget` | No | — | Monthly budget cap in cents (e.g. `5000` = $50/month) |
 | `--json` | No | false | Output created agent as JSON |
@@ -216,7 +235,7 @@ paperclip-cli agent update <agent-id> --reports-to <other-agent-id>
 | `--role` | No | — | New role: `general` or `ceo` |
 | `--reports-to` | No | — | Agent ID this agent reports to |
 | `--budget` | No | — | Monthly budget in cents (`5000` = $50/month) |
-| `--adapter-type` | No | — | Adapter type (default: `process`) |
+| `--adapter` | No | `claude_local` | Runtime adapter (see Adapters section) |
 | `--json` | No | false | Output updated agent as JSON |
 
 ### Example Output
