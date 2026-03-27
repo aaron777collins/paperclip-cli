@@ -166,12 +166,15 @@ def project_delete(ctx, project_id, yes, force):
             client.delete(f"/projects/{project_id}")
             console.print(f"[green]✓[/green] Deleted project {project_id} (and all its routines)")
         else:
-            client.patch(f"/projects/{project_id}", {"status": "cancelled"})
-            console.print(f"[green]✓[/green] Archived project {project_id} (status: cancelled)")
+            from datetime import datetime, timezone
+            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            client.patch(f"/projects/{project_id}", {"archivedAt": now})
+            console.print(f"[green]✓[/green] Archived project {project_id} — hidden from sidebar")
             console.print(f"[dim]  Use 'project unarchive {project_id}' to restore[/dim]")
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
 
 
 @project.command("archive")
@@ -179,20 +182,21 @@ def project_delete(ctx, project_id, yes, force):
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
 def project_archive(ctx, project_id, as_json):
-    """Archive (cancel) a project — removes it from active work.
+    """Archive a project — hides it from sidebar (same as UI Archive button).
 
     \b
-    Note: Paperclip projects do not have a dedicated archive status.
-    This sets status=cancelled, which hides the project from active views.
-    Use 'project unarchive <id>' to restore it to backlog.
+    Sets the archivedAt timestamp on the project.
+    Use 'project unarchive <id>' to restore.
     """
+    from datetime import datetime, timezone
     client: PaperclipClient = ctx.obj
     try:
-        result = client.patch(f"/projects/{project_id}", {"status": "cancelled"})
+        now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        result = client.patch(f"/projects/{project_id}", {"archivedAt": now})
         if as_json:
             click.echo(json.dumps(result, indent=2))
             return
-        console.print(f"[green]✓[/green] Archived project {project_id} (status: cancelled)")
+        console.print(f"[green]✓[/green] Archived project {project_id} — hidden from sidebar")
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
@@ -203,14 +207,14 @@ def project_archive(ctx, project_id, as_json):
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
 def project_unarchive(ctx, project_id, as_json):
-    """Restore a cancelled project back to backlog."""
+    """Restore an archived project — clears archivedAt so it reappears in the sidebar."""
     client: PaperclipClient = ctx.obj
     try:
-        result = client.patch(f"/projects/{project_id}", {"status": "backlog"})
+        result = client.patch(f"/projects/{project_id}", {"archivedAt": None})
         if as_json:
             click.echo(json.dumps(result, indent=2))
             return
-        console.print(f"[green]✓[/green] Restored project {project_id} (status: backlog)")
+        console.print(f"[green]✓[/green] Unarchived project {project_id} — visible again")
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
