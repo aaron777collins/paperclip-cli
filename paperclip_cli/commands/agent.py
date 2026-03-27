@@ -291,3 +291,35 @@ def agent_wakeup(ctx, agent_id):
     except PaperclipError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise SystemExit(1)
+
+
+@agent.command("set-instructions")
+@click.argument("agent_id")
+@click.option("--path", "instructions_path", required=True,
+              help="Absolute path to an AGENTS.md instructions file for this agent")
+@click.option("--json", "as_json", is_flag=True, help="Output as JSON")
+@click.pass_context
+def agent_set_instructions(ctx, agent_id, instructions_path, as_json):
+    """Set the AGENTS.md instructions file path for an agent.
+
+    \b
+    This tells the agent which file contains its role, context, and instructions.
+    The file is read by Claude Code at the start of each heartbeat run.
+
+    \b
+    Example:
+      paperclip-cli agent set-instructions <agent-id> \\
+        --path ~/.paperclip/instances/default/companies/<co-id>/agents/<agent-id>/instructions/AGENTS.md
+    """
+    client: PaperclipClient = ctx.obj
+    try:
+        result = client.patch(f"/agents/{agent_id}/instructions-path",
+                              {"path": instructions_path})
+        if as_json:
+            click.echo(json.dumps(result, indent=2))
+            return
+        console.print(f"[green]✓[/green] Set instructions path for {agent_id}")
+        console.print(f"  Path: {instructions_path}")
+    except PaperclipError as e:
+        console.print(f"[red]Error:[/red] {e}")
+        raise SystemExit(1)
