@@ -116,18 +116,20 @@ def agent_create(ctx, company_id, name, role, title, adapter_type, model, max_tu
         model = "claude-opus-4-6"
     try:
         # Build runtimeConfig and adapterConfig per adapter type
+        # For claude_local: model, dangerouslySkipPermissions, maxTurnsPerRun go in adapterConfig
+        # (the adapter reads from adapterConfig, NOT runtimeConfig)
         runtime_config = {}
-        adapter_config = {}  # default empty
+        adapter_config = {}  # default empty — Paperclip auto-sets instructionsFilePath
         if adapter_type == "claude_local":
-            runtime_config = {
+            adapter_config = {
                 "model": model,
                 "dangerouslySkipPermissions": True,
                 "maxTurnsPerRun": max_turns,
             }
             if cwd:
-                runtime_config["cwd"] = cwd
+                adapter_config["cwd"] = cwd
             if effort:
-                runtime_config["effort"] = effort
+                adapter_config["effort"] = effort
         elif adapter_type == "opencode_local":
             # opencode_local requires model in adapterConfig (not runtimeConfig)
             # model format: provider/model e.g. "anthropic/claude-sonnet-4-6"
