@@ -39,6 +39,13 @@ def test_agent_list_help(runner):
     assert "--company" in result.output
 
 
+def test_issue_list_help_valid_statuses(runner):
+    result = runner.invoke(cli, ["issue", "list", "--help"])
+    assert result.exit_code == 0
+    assert "backlog" in result.output
+    assert "open" not in result.output
+
+
 def test_goal_create_help(runner):
     result = runner.invoke(cli, ["goal", "create", "--help"])
     assert result.exit_code == 0
@@ -181,6 +188,54 @@ def test_goal_delete_yes(runner):
     result = runner.invoke(cli, ["--url", "http://localhost:3100", "goal", "delete", "g1", "--yes"])
     assert result.exit_code == 0
     assert "Deleted" in result.output
+
+
+@rsps.activate
+def test_issue_list_with_status_filter(runner):
+    rsps.add(
+        rsps.GET,
+        "http://localhost:3100/api/companies/1/issues",
+        json=[{"id": "i1", "title": "Test", "status": "backlog", "assigneeAgentId": None}],
+    )
+    result = runner.invoke(
+        cli,
+        ["--url", "http://localhost:3100", "issue", "list", "--company", "1", "--status", "backlog", "--json"],
+    )
+    assert result.exit_code == 0
+    data = json.loads(result.output)
+    assert data[0]["status"] == "backlog"
+
+
+@rsps.activate
+def test_issue_update_in_progress_api_error(runner):
+    """When API rejects in_progress without assignee, CLI shows helpful error not traceback."""
+    rsps.add(
+        rsps.PATCH,
+        "http://localhost:3100/api/issues/i1",
+        json={"error": "in_progress issues require an assignee"},
+        status=422,
+    )
+    result = runner.invoke(
+        cli,
+        ["--url", "http://localhost:3100", "issue", "update", "i1", "--status", "in_progress"],
+    )
+    assert result.exit_code == 1
+    assert "in_progress issues require an assignee" in result.output
+
+
+@rsps.activate
+def test_issue_update_assignee_field_name(runner):
+    """Verify assignee is sent as assigneeAgentId not assigneeId."""
+    rsps.add(rsps.PATCH, "http://localhost:3100/api/issues/i1", json={"id": "i1", "assigneeAgentId": "a1"})
+    result = runner.invoke(
+        cli,
+        ["--url", "http://localhost:3100", "issue", "update", "i1", "--assignee", "a1", "--json"],
+    )
+    assert result.exit_code == 0
+    import json as _json
+    body = _json.loads(rsps.calls[0].request.body)
+    assert "assigneeAgentId" in body
+    assert "assigneeId" not in body
 
 
 @rsps.activate

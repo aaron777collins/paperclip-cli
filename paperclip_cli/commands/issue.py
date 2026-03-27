@@ -18,7 +18,7 @@ def issue(ctx):
 
 @issue.command("list")
 @click.option("--company", "company_id", required=True, help="Company ID")
-@click.option("--status", default=None, help="Filter by status (open, in_progress, done, etc.)")
+@click.option("--status", default=None, help="Filter by status (backlog, todo, in_progress, done, cancelled)")
 @click.option("--json", "as_json", is_flag=True, help="Output as JSON")
 @click.pass_context
 def issue_list(ctx, company_id, status, as_json):

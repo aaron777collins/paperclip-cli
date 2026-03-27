@@ -4,6 +4,17 @@ A full-featured Python CLI for [Paperclip](https://github.com/paperclipai/paperc
 
 Manage your AI companies, agents, goals, issues, board approvals, and plugins entirely from the terminal.
 
+## 📚 Full Documentation
+
+Detailed per-command docs with option tables, example outputs, and API gotchas:
+
+**[https://aaron777collins.github.io/paperclip-cli/](https://aaron777collins.github.io/paperclip-cli/)**
+
+Or browse locally in the [`docs/`](docs/) folder:
+[company](docs/company.md) · [agent](docs/agent.md) · [goal](docs/goal.md) · [issue](docs/issue.md) · [project](docs/project.md) · [routine](docs/routine.md) · [approval](docs/approval.md) · [plugin](docs/plugin.md) · [heartbeat](docs/heartbeat.md) · [secret](docs/secret.md)
+
+---
+
 ## Command Coverage at a Glance
 
 | Resource | `list` | `create` | `get` | `update` | `delete` | Extra |
@@ -170,9 +181,9 @@ paperclip-cli company list --json
 Create a new company.
 
 ```bash
-paperclip-cli company create --name "TenantHelper"
-paperclip-cli company create --name "TenantHelper" --description "AI property management platform"
-paperclip-cli company create --name "TenantHelper" --description "..." --mission "Automate landlord ops"
+paperclip-cli company create --name "AcmeCorp"
+paperclip-cli company create --name "AcmeCorp" --description "AI-powered operations platform"
+paperclip-cli company create --name "AcmeCorp" --description "..." --mission "Automate business ops"
 ```
 
 | Option | Required | Description |
@@ -365,14 +376,14 @@ List all issues for a company.
 
 ```bash
 paperclip-cli issue list --company <company-id>
-paperclip-cli issue list --company <company-id> --status open
+paperclip-cli issue list --company <company-id> --status backlog
 paperclip-cli issue list --company <company-id> --status in_progress --json
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--company` | ✅ Company ID |
-| `--status` | Filter by status: `open`, `in_progress`, `done`, etc. |
+| `--status` | Filter by status: `backlog`, `todo`, `in_progress`, `done`, `cancelled` |
 
 #### `issue create`
 
@@ -493,7 +504,7 @@ Every read command supports `--json` for clean machine-readable output — great
 
 ```bash
 # Get a company ID by name
-paperclip-cli company list --json | jq -r '.[] | select(.name=="TenantHelper") | .id'
+paperclip-cli company list --json | jq -r '.[] | select(.name=="AcmeCorp") | .id'
 
 # List all pending approvals across all companies
 paperclip-cli company list --json | jq -r '.[].id' | while read id; do
@@ -528,10 +539,10 @@ Use `--json` + `jq` to grab IDs without copying from tables:
 
 ```bash
 # Company ID
-COMPANY=$(paperclip-cli company list --json | jq -r '.[] | select(.name=="TenantHelper") | .id')
+COMPANY=$(paperclip-cli company list --json | jq -r '.[] | select(.name=="AcmeCorp") | .id')
 
 # Agent ID
-AGENT=$(paperclip-cli agent list --company $COMPANY --json | jq -r '.[] | select(.name=="CEO") | .id')
+AGENT=$(paperclip-cli agent list --company "$COMPANY" --json | jq -r '.[] | select(.name=="CEO") | .id')
 ```
 
 ### Approve all pending hires at once
