@@ -4,6 +4,19 @@ A full-featured Python CLI for [Paperclip](https://github.com/paperclipai/paperc
 
 Manage your AI companies, agents, goals, issues, board approvals, and plugins entirely from the terminal.
 
+## Command Coverage at a Glance
+
+| Resource | `list` | `create` | `get` | `update` | `delete` | Extra |
+|----------|:------:|:--------:|:-----:|:--------:|:--------:|-------|
+| **company** | ✅ | ✅ | ✅ | ✅ | ✅ | — |
+| **agent** | ✅ | ✅ | ✅ | ✅ | ✅ | `wakeup` |
+| **goal** | ✅ | ✅ | — | ✅ | ✅ | — |
+| **issue** | ✅ | ✅ | — | ✅ | ✅ | — |
+| **approval** | ✅ | — | — | — | — | `approve`, `reject` |
+| **plugin** | ✅ | — | — | — | — | `examples`, `install` |
+
+Every command supports `--json` for machine-readable output and `-h`/`--help` for usage info.
+
 ---
 
 ## Table of Contents
